@@ -1,0 +1,26 @@
+python3 S01_MUSE_LAE_spectral_fitting.py A2744 APER 1fwhm --aper-size 1 --overwrite-spectra --optimise-apertures lya --plot-images --optimise-apertures-kwargs '{"nstd":2.0, "search_size":5.0}'
+
+python3 S01_MUSE_LAE_spectral_fitting.py A370 APER 1fwhm --aper-size 1 --overwrite-spectra --optimise-apertures lya --plot-images --optimise-apertures-kwargs '{"nstd":2.0, "search_size":5.0}'
+
+python3 S01_MUSE_LAE_spectral_fitting.py BULLET APER 1fwhm --aper-size 1 --overwrite-spectra --optimise-apertures lya --plot-images --optimise-apertures-kwargs '{"nstd":2.0, "search_size":5.0}'
+
+python3 S01_MUSE_LAE_spectral_fitting.py MACS0257 APER 1fwhm --aper-size 1 --overwrite-spectra --optimise-apertures lya --plot-images --optimise-apertures-kwargs '{"nstd":2.0, "search_size":5.0}'
+
+python3 S01_MUSE_LAE_spectral_fitting.py MACS0329 APER 1fwhm --aper-size 1 --overwrite-spectra --optimise-apertures lya --plot-images --optimise-apertures-kwargs '{"nstd":2.0, "search_size":5.0}'
+
+python3 S01_MUSE_LAE_spectral_fitting.py MACS0416NE APER 1fwhm --aper-size 1 --overwrite-spectra --optimise-apertures lya --plot-images --optimise-apertures-kwargs '{"nstd":2.0, "search_size":5.0}'
+
+python3 S01_MUSE_LAE_spectral_fitting.py MACS0416S APER 1fwhm --aper-size 1 --overwrite-spectra --optimise-apertures lya --plot-images --optimise-apertures-kwargs '{"nstd":2.0, "search_size":5.0}'
+
+python3 S01_MUSE_LAE_spectral_fitting.py MACS0940 APER 1fwhm --aper-size 1 --overwrite-spectra --optimise-apertures lya --plot-images --optimise-apertures-kwargs '{"nstd":2.0, "search_size":5.0}'
+
+python3 S01_MUSE_LAE_spectral_fitting.py MACS1206 APER 1fwhm --aper-size 1 --overwrite-spectra --optimise-apertures lya --plot-images --optimise-apertures-kwargs '{"nstd":2.0, "search_size":5.0}'
+
+python3 S01_MUSE_LAE_spectral_fitting.py MACS2214 APER 1fwhm --aper-size 1 --overwrite-spectra --optimise-apertures lya --plot-images --optimise-apertures-kwargs '{"nstd":2.0, "search_size":5.0}'
+
+python3 S01_MUSE_LAE_spectral_fitting.py RXJ1347 APER 1fwhm --aper-size 1 --overwrite-spectra --optimise-apertures lya --plot-images --optimise-apertures-kwargs '{"nstd":2.0, "search_size":5.0}'
+
+python3 S01_MUSE_LAE_spectral_fitting.py SMACS2031 APER 1fwhm --aper-size 1 --overwrite-spectra --optimise-apertures lya --plot-images --optimise-apertures-kwargs '{"nstd":2.0, "search_size":5.0}'
+
+python3 S01_MUSE_LAE_spectral_fitting.py SMACS2131 APER 1fwhm --aper-size 1 --overwrite-spectra --optimise-apertures lya --plot-images --optimise-apertures-kwargs '{"nstd":2.0, "search_size":5.0}'
+
