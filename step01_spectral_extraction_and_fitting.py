@@ -88,7 +88,7 @@ def check_spectra_availability(spec_paths):
     if missing_spectra:
         raise FileNotFoundError(f"Spectra missing for sources: {', '.join(missing_spectra)}")
     
-def insert_lya_results(lya_results, full_iden, fit_results, mu, mu_err):
+def insert_lya_results(lya_results, full_iden, fit_results, mu, mu_err, ra_new, dec_new):
     """
     Inserts Lyman alpha fit results into the lya_results table.
 
@@ -110,6 +110,8 @@ def insert_lya_results(lya_results, full_iden, fit_results, mu, mu_err):
     new_row['LINE'] = 'LYALPHA'
     new_row['LBDA_REST'] = auconst.wavedict['LYALPHA']
     new_row['MU'] = mu
+    new_row['RA'] = ra_new
+    new_row['DEC'] = dec_new
     new_row['MU_ERR'] = mu_err
     new_row['Z'] = fit_results['param_dict'].get('LPEAKR', np.nan) / auconst.wavedict['LYALPHA'] - 1
     new_row['Z_ERR'] = (fit_results['error_dict'].get('LPEAKR', np.nan) / auconst.wavedict['LYALPHA'])
@@ -117,6 +119,8 @@ def insert_lya_results(lya_results, full_iden, fit_results, mu, mu_err):
     new_row['SNRB'] = fit_results['param_dict'].get('FLUXB', np.nan) / fit_results['error_dict'].get('FLUXB', np.nan)
     # Approximate upper bound flux for blue component using the uncertainty on red component flux
     new_row['FLUXB_UB'] = fit_results['error_dict'].get('FLUXR', np.nan) * 3.0
+    new_row['RCHSQ'] = fit_results.get('reduced_chisq', np.nan)
+    new_row['FLAG'] = '' # no flagging has been done yet but will be in subsequent steps
     for key, value in fit_results['param_dict'].items():
         new_row[key] = value
         new_row[f"{key}_ERR"] = fit_results['error_dict'].get(key, np.nan)
@@ -241,6 +245,7 @@ def fit_spectrum(row, line_results, lya_results, CLUSTER_NAME, SPEC_SOURCE, SPEC
     z = row['z']
     mu = row['MU']
     mu_err = row['MU_ERR']
+    ra, dec = row['RA'], row['DEC']
     clus = CLUSTER_NAME
 
     # Get table of spectral lines for this source from the r21 line catalog
@@ -253,7 +258,7 @@ def fit_spectrum(row, line_results, lya_results, CLUSTER_NAME, SPEC_SOURCE, SPEC
     print(f"\nFitting spectrum for {clus} {full_iden}...")
 
     # Load the spectrum
-    spec_tab = auio.load_spec(clus, full_iden, idfrom, spec_source=SPEC_SOURCE, spectype=SPEC_TYPE)
+    spec_tab = auio.load_spec(clus, full_iden, idfrom, spec_source=SPEC_SOURCE, spec_type=SPEC_TYPE)
     
     # Get wavelength, spectrum, and error arrays
     wave = spec_tab['wave']
@@ -276,7 +281,7 @@ def fit_spectrum(row, line_results, lya_results, CLUSTER_NAME, SPEC_SOURCE, SPEC
         return
 
     # Insert Lyman alpha fit results into the lya_results table
-    insert_lya_results(lya_results, full_iden, lya_fit_results, mu, mu_err)
+    insert_lya_results(lya_results, full_iden, lya_fit_results, mu, mu_err, ra, dec)
 
     # Now fit any other lines from the R21 catalogues
     other_fit_results = {}
@@ -372,19 +377,28 @@ def main():
     source_cat = source_cat[(source_cat['z'] > 2.9) & (source_cat['z'] < 6.7)] # LAEs only for MUSE wavelength coverage
     line_cat   = line_cat[(line_cat['Z'] > 2.9) & (line_cat['Z'] < 6.7)]     # LAEs only for MUSE wavelength coverage
 
+    # Add a full identifier column to the source catalog for easier matching with spectra
+    full_idens = [f"{row['idfrom'][0].replace('E', 'X')}{row['iden']}" for row in source_cat]
+    source_cat['full_iden'] = full_idens
+
     # Extract and save spectra for all sources in the catalog if needed
     if SPEC_SOURCE == 'APER':
         if APER_SIZE is None:
             raise ValueError("Aperture size must be specified for APER spectra.")
-        spec_paths = auifs.extract_spectra(source_cat, APER_SIZE, CLUSTER_NAME, overwrite=OVERWRITE,
+        spec_paths, positions = auifs.extract_spectra(source_cat, APER_SIZE, CLUSTER_NAME, overwrite=OVERWRITE,
                                      optimise_apertures=OPTIMISE_APERTURES, 
                                      optimise_apertures_kwargs=OPTIMISE_APERTURES_KWARGS,
                                      plot_images=PLOT_IMAGES,
                                      save_plots=True)
     elif SPEC_SOURCE == 'R21':
         spec_paths = get_R21_paths(source_cat, CLUSTER_NAME, SPEC_TYPE)
+        positions  = {full_iden: (row['RA'], row['DEC']) for row, full_iden in zip(source_cat, full_idens)}
     else:
         raise ValueError("SPEC_SOURCE must be either 'APER' or 'R21'.")
+    
+    # Update source catalogue positions
+    source_cat['RA'] = np.array([positions[full_iden][0] for full_iden in source_cat['full_iden']])
+    source_cat['DEC'] = np.array([positions[full_iden][1] for full_iden in source_cat['full_iden']])
         
     # Check to make sure the spectra are available
     check_spectra_availability(spec_paths)
@@ -402,6 +416,7 @@ def main():
     )
     lya_results = aptb.Table(
         names=('iden', 'LINE', 'LBDA_REST', 
+               'RA', 'DEC',
                'FLUXB', 'FLUXB_ERR', 
                'FLUXR', 'FLUXR_ERR', 
                'AMPR', 'AMPR_ERR', 
@@ -422,9 +437,10 @@ def main():
                'LPEAK_ABS', 'LPEAK_ABS_ERR',
                'MU', 'MU_ERR',
                'Z', 'Z_ERR', 
-               'FLUXB_UB'),
+               'FLUXB_UB', 'RCHSQ', 'FLAG'),
          dtype=(
              'U', 'U', 'f8',
+             'f8', 'f8',
              'f8', 'f8',
              'f8', 'f8', 
              'f8', 'f8',
