@@ -28,19 +28,20 @@ Description:
 import argparse
 from collections import namedtuple
 import numpy as np
-import astro_utils.io as auio
-import astro_utils.constants as auconst
-import astro_utils.image_processing as auip
-import astro_utils.ifs as auifs
-import astro_utils.catalogue_operations as aucat
-import astro_utils.lya_fitting as lyafit
-import astro_utils.fitting as aufit
+
+import tangelo.io as tio
+import tangelo.constants as tconst
+import tangelo.ifs as tifs
+import tangelo.catalogue_operations as tcat
+import tangelo.lya_fitting as lyafit
+import tangelo.fitting as tfit
+
 from pathlib import Path
 import ast
 import astropy.table as aptb
 
-wavedict = auconst.wavedict
-doublet_dict = auconst.doublets
+wavedict = tconst.wavedict
+doublet_dict = tconst.doublets
 
 def get_R21_paths(source_cat, cluster_name, r21_type='noweight_skysub'):
     """
@@ -64,7 +65,7 @@ def get_R21_paths(source_cat, cluster_name, r21_type='noweight_skysub'):
     for source in source_cat:
         iden = source['iden']
         idfrom = source['idfrom']
-        spec_path = auio.get_r21_spectra_dir(cluster_name)
+        spec_path = tio.get_r21_spectra_dir(cluster_name)
         full_iden = f"{idfrom[0].replace('E', 'X')}{iden}"
         spec_file = Path(spec_path) / f"spec_{full_iden}_{r21_type}.fits"
         spec_paths[full_iden] = spec_file
@@ -108,13 +109,13 @@ def insert_lya_results(lya_results, full_iden, fit_results, mu, mu_err, ra_new, 
     new_row = {}
     new_row['iden'] = full_iden
     new_row['LINE'] = 'LYALPHA'
-    new_row['LBDA_REST'] = auconst.wavedict['LYALPHA']
+    new_row['LBDA_REST'] = tconst.wavedict['LYALPHA']
     new_row['MU'] = mu
     new_row['RA'] = ra_new
     new_row['DEC'] = dec_new
     new_row['MU_ERR'] = mu_err
-    new_row['Z'] = fit_results['param_dict'].get('LPEAKR', np.nan) / auconst.wavedict['LYALPHA'] - 1
-    new_row['Z_ERR'] = (fit_results['error_dict'].get('LPEAKR', np.nan) / auconst.wavedict['LYALPHA'])
+    new_row['Z'] = fit_results['param_dict'].get('LPEAKR', np.nan) / tconst.wavedict['LYALPHA'] - 1
+    new_row['Z_ERR'] = (fit_results['error_dict'].get('LPEAKR', np.nan) / tconst.wavedict['LYALPHA'])
     new_row['SNRR'] = fit_results['param_dict'].get('FLUXR', np.nan) / fit_results['error_dict'].get('FLUXR', np.nan)
     new_row['SNRB'] = fit_results['param_dict'].get('FLUXB', np.nan) / fit_results['error_dict'].get('FLUXB', np.nan)
     # Approximate upper bound flux for blue component using the uncertainty on red component flux
@@ -147,7 +148,7 @@ def insert_line_results(line_results, full_iden, line_name, fit_results, mu, mu_
     -------
     None
     """
-    rest_wave = auconst.wavedict[line_name]
+    rest_wave = tconst.wavedict[line_name]
     doublet = doublet_dict.get(line_name, (None, None))
     rest_wave_2 = wavedict.get(doublet[1])
 
@@ -249,7 +250,7 @@ def fit_spectrum(row, line_results, lya_results, CLUSTER_NAME, SPEC_SOURCE, SPEC
     clus = CLUSTER_NAME
 
     # Get table of spectral lines for this source from the r21 line catalog
-    line_table = aucat.get_line_table(full_iden, clus, exclude_lya=False)
+    line_table = tcat.get_line_table(full_iden, clus, exclude_lya=False)
 
     if len(line_table) == 0:
         print(f"\nNo lines to fit for source {full_iden}. Skipping...")
@@ -258,7 +259,7 @@ def fit_spectrum(row, line_results, lya_results, CLUSTER_NAME, SPEC_SOURCE, SPEC
     print(f"\nFitting spectrum for {clus} {full_iden}...")
 
     # Load the spectrum
-    spec_tab = auio.load_spec(clus, full_iden, idfrom, spec_source=SPEC_SOURCE, spec_type=SPEC_TYPE)
+    spec_tab = tio.load_spec(clus, full_iden, idfrom, spec_source=SPEC_SOURCE, spec_type=SPEC_TYPE)
     
     # Get wavelength, spectrum, and error arrays
     wave = spec_tab['wave']
@@ -266,10 +267,10 @@ def fit_spectrum(row, line_results, lya_results, CLUSTER_NAME, SPEC_SOURCE, SPEC
     error = spec_tab['spec_err']
 
     # Generate initial guesses
-    lya_p0 = aufit.get_initial_guesses_from_catalog(line_table, 'LYALPHA', type='em')
+    lya_p0 = tfit.get_initial_guesses_from_catalog(line_table, 'LYALPHA', type='em')
 
     # Fit the Lyman alpha line first
-    plot_dir = auio.get_plot_dir(clus, full_iden)
+    plot_dir = tio.get_plot_dir(clus, full_iden)
     lya_fit_results = lyafit.fit_lya_line(wave, spec, error, lya_p0, full_iden, clus,
                                            plot_result=True, width=50,
                                            save_plots=True, plot_dir=plot_dir,
@@ -291,9 +292,9 @@ def fit_spectrum(row, line_results, lya_results, CLUSTER_NAME, SPEC_SOURCE, SPEC
             continue  # Already fitted Lyman alpha
         # If it's the secondary component of a doublet, check that the primary is in the table,
         # and if it is, then skip, otherwise, raise a warning and continue
-        if np.any(auconst.slines == line_row['LINE']):
-            idx = np.where(auconst.slines == line_row['LINE'])[0][0]
-            primary = auconst.flines[idx]
+        if np.any(tconst.slines == line_row['LINE']):
+            idx = np.where(tconst.slines == line_row['LINE'])[0][0]
+            primary = tconst.flines[idx]
             if np.any(line_table['LINE'] == primary):
                 print(f"Skipping secondary line {line_row['LINE']} as primary {primary} is also present.")
                 continue
@@ -303,11 +304,11 @@ def fit_spectrum(row, line_results, lya_results, CLUSTER_NAME, SPEC_SOURCE, SPEC
         line_name = line_row['LINE']
         print(f"Fitting {line_name} for {clus} {full_iden}...")
         # Get initial guesses and fit the line
-        initial_guesses = aufit.get_initial_guesses_from_catalog(line_table, line_name)
+        initial_guesses = tfit.get_initial_guesses_from_catalog(line_table, line_name)
         # Prepare inputs for fitting -- making sure bounds are appropriate
-        initial_guesses, bounds = aufit.prep_inputs(initial_guesses, line_name, z)
+        initial_guesses, bounds = tfit.prep_inputs(initial_guesses, line_name, z)
         
-        line_fit = aufit.fit_line(wave, spec, error, line_name, initial_guesses, bounds, plot_result=True,
+        line_fit = tfit.fit_line(wave, spec, error, line_name, initial_guesses, bounds, plot_result=True,
                                   save_plots=True, plot_dir=plot_dir, spec_type=SPEC_TYPE, cluster=clus, 
                                   full_iden=full_iden)
         other_fit_results[line_name] = line_fit
@@ -323,7 +324,7 @@ def fit_spectrum(row, line_results, lya_results, CLUSTER_NAME, SPEC_SOURCE, SPEC
 
     # Force fitting of important lines if they fall within the wavelength range of the spectrum
     for line in important_lines:
-        rest_wavelength = auconst.wavedict[line]
+        rest_wavelength = tconst.wavedict[line]
         observed_wavelength = rest_wavelength * (1 + z)
         if line not in other_fit_results and observed_wavelength >= wave.min() and observed_wavelength <= wave.max():
             print(f"Important line {line} not fitted for source {full_iden}. Refitting with manual initial guesses.")
@@ -335,9 +336,9 @@ def fit_spectrum(row, line_results, lya_results, CLUSTER_NAME, SPEC_SOURCE, SPEC
                 'CONT': np.nanmedian(spec),  # Median of the spectrum as continuum
                 'SLOPE': 0.0  # Flat continuum
             }
-            if line in auconst.flines: # If it's a doublet, add a second component
+            if line in tconst.flines: # If it's a doublet, add a second component
                 manual_p0['FLUX2'] = manual_p0['FLUX']  # Assume secondary component is half the flux of primary
-            manual_fit = aufit.fit_line(wave, spec, error, line, manual_p0, plot_result=True,
+            manual_fit = tfit.fit_line(wave, spec, error, line, manual_p0, plot_result=True,
                                         save_plots=True, plot_dir=plot_dir, spec_type=SPEC_TYPE, cluster=clus, 
                                         full_iden=full_iden)
             if manual_fit:
@@ -369,9 +370,9 @@ def main():
     PLOT_IMAGES = args.plot_images
 
     # Load source catalog for the specified cluster
-    source_cat = auio.load_r21_catalogue(CLUSTER_NAME, type='source')
+    source_cat = tio.load_r21_catalogue(CLUSTER_NAME, type='source')
     # Load lines catalog for the specified cluster
-    line_cat = auio.load_r21_catalogue(CLUSTER_NAME, type='line')
+    line_cat = tio.load_r21_catalogue(CLUSTER_NAME, type='line')
 
     # Filter to look only at LAEs
     source_cat = source_cat[(source_cat['z'] > 2.9) & (source_cat['z'] < 6.7)] # LAEs only for MUSE wavelength coverage
@@ -385,7 +386,7 @@ def main():
     if SPEC_SOURCE == 'APER':
         if APER_SIZE is None:
             raise ValueError("Aperture size must be specified for APER spectra.")
-        spec_paths, positions = auifs.extract_spectra(source_cat, APER_SIZE, CLUSTER_NAME, overwrite=OVERWRITE,
+        spec_paths, positions = tifs.extract_spectra(source_cat, APER_SIZE, CLUSTER_NAME, overwrite=OVERWRITE,
                                      optimise_apertures=OPTIMISE_APERTURES, 
                                      optimise_apertures_kwargs=OPTIMISE_APERTURES_KWARGS,
                                      plot_images=PLOT_IMAGES,
@@ -396,9 +397,12 @@ def main():
     else:
         raise ValueError("SPEC_SOURCE must be either 'APER' or 'R21'.")
     
+    # Filter source catalogue to include only sources for which we have spectra
+    source_cat = source_cat[[full_iden in spec_paths for full_iden in source_cat['full_iden']]]
+    
     # Update source catalogue positions
-    source_cat['RA'] = np.array([positions[full_iden][0] for full_iden in source_cat['full_iden']])
-    source_cat['DEC'] = np.array([positions[full_iden][1] for full_iden in source_cat['full_iden']])
+    source_cat['RA']  = [positions[full_iden][0] for full_iden in source_cat['full_iden']]
+    source_cat['DEC'] = [positions[full_iden][1] for full_iden in source_cat['full_iden']]
         
     # Check to make sure the spectra are available
     check_spectra_availability(spec_paths)
@@ -461,7 +465,7 @@ def main():
              'f8', 'f8',
              'f8', 'f8',
              'f8', 'f8',
-             'f8'
+             'f8', 'f8', 'U'
             )
     )
 
@@ -484,7 +488,7 @@ def main():
             lya_results[col] = np.where(lya_results[col] == 0, np.nan, lya_results[col])
 
     # Save the results tables to disk
-    results_dir = auio.get_fit_catalog_dir(CLUSTER_NAME)
+    results_dir = tio.get_fit_catalog_dir(CLUSTER_NAME)
     line_results_file = Path(results_dir) / f"{CLUSTER_NAME}_{SPEC_TYPE}_lines.fits"
     lya_results_file = Path(results_dir) / f"{CLUSTER_NAME}_{SPEC_TYPE}_lya.fits"
 

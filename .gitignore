@@ -1,1 +1,4 @@
 megatables/*
+.ipynb_checkpoints
+.vscode
+*.log
