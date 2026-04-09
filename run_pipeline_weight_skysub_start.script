@@ -1,0 +1,25 @@
+#python3 step01_spectral_extraction_and_fitting.py A2744 R21 weight_skysub
+
+#python3 step01_spectral_extraction_and_fitting.py A370 R21 weight_skysub
+
+#python3 step01_spectral_extraction_and_fitting.py BULLET R21 weight_skysub
+
+python3 step01_spectral_extraction_and_fitting.py MACS0257 R21 weight_skysub
+
+python3 step01_spectral_extraction_and_fitting.py MACS0329 R21 weight_skysub
+
+python3 step01_spectral_extraction_and_fitting.py MACS0416NE R21 weight_skysub
+
+python3 step01_spectral_extraction_and_fitting.py MACS0416S R21 weight_skysub
+
+python3 step01_spectral_extraction_and_fitting.py MACS0940 R21 weight_skysub
+
+python3 step01_spectral_extraction_and_fitting.py MACS1206 R21 weight_skysub
+
+python3 step01_spectral_extraction_and_fitting.py MACS2214 R21 weight_skysub
+
+python3 step01_spectral_extraction_and_fitting.py RXJ1347 R21 weight_skysub
+
+python3 step01_spectral_extraction_and_fitting.py SMACS2031 R21 weight_skysub
+
+python3 step01_spectral_extraction_and_fitting.py SMACS2131 R21 weight_skysub

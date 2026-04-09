@@ -1,4 +1,5 @@
 megatables/*
 .ipynb_checkpoints
 .vscode
-*.log
+*.logscratch/*
+scratch/*

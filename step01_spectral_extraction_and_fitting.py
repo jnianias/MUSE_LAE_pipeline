@@ -87,6 +87,9 @@ def check_spectra_availability(spec_paths):
     """
     missing_spectra = [iden for iden, path in spec_paths.items() if not path.exists()]
     if missing_spectra:
+        # show the missing paths for debugging
+        for iden in missing_spectra:
+            print(f"Missing spectrum for {iden}: expected at {spec_paths[iden]}")
         raise FileNotFoundError(f"Spectra missing for sources: {', '.join(missing_spectra)}")
     
 def insert_lya_results(lya_results, full_iden, fit_results, mu, mu_err, ra_new, dec_new):
@@ -353,7 +356,7 @@ def main():
     parser.add_argument("SPEC_TYPE", type=str, help="Type of spectrum to use (e.g., 'noweight_skysub', '2fwhm')")
     parser.add_argument("--aper-size", type=int, default=None, help="Aperture size in FWHM (required for APER)")
     parser.add_argument("--overwrite-spectra", action="store_true", help="Overwrite existing spectra")
-    parser.add_argument("--optimise-apertures", type=str, default='auto', 
+    parser.add_argument("--optimise-apertures", type=str, default='none', 
                         help="Which aperture optimisation to use ('auto', 'none', 'lya')")
     parser.add_argument("--optimise-apertures-kwargs", type=str, default='{"nstruct":2, "niter":1}', 
                         help="Additional keyword arguments for aperture optimisation methods (nstruct, niter)")
@@ -392,8 +395,13 @@ def main():
                                      plot_images=PLOT_IMAGES,
                                      save_plots=True)
     elif SPEC_SOURCE == 'R21':
-        spec_paths = get_R21_paths(source_cat, CLUSTER_NAME, SPEC_TYPE)
+        spec_paths = get_R21_paths(source_cat, CLUSTER_NAME, r21_type=SPEC_TYPE)
         positions  = {full_iden: (row['RA'], row['DEC']) for row, full_iden in zip(source_cat, full_idens)}
+        # Download any R21 spectra that aren't already stored locally
+        for full_iden, spec_path in spec_paths.items():
+            if not spec_path.exists():
+                print(f"Downloading spectrum for {full_iden} from R21...")
+                tio.download_r21_spectrum(CLUSTER_NAME, full_iden, SPEC_TYPE)
     else:
         raise ValueError("SPEC_SOURCE must be either 'APER' or 'R21'.")
     
