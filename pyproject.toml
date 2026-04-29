@@ -1,0 +1,37 @@
+[project]
+name = "muse-lae-pipeline"
+version = "0.1.0"
+description = "Pipeline for characterising galactic outflows in high-redshift Lyman-alpha emitters"
+requires-python = ">=3.13"
+dependencies = [
+    "astropy",
+    "error-propagation",
+    "jupyterlab",
+    "kneed",
+    "lya-zelda",
+    "matplotlib",
+    "mpdaf",
+    "numpy",
+    "pandas",
+    "scikit-learn",
+    "scipy",
+    "tangelo",
+]
+
+[tool.uv.sources]
+# tangelo is a local editable package — adjust path if repo location changes
+tangelo = { path = "../../../tangelo", editable = true }
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+# E/W = pycodestyle, F = pyflakes, I = isort
+select = ["E", "F", "W", "I"]
+ignore = [
+    "E501",  # line too long — handled by formatter, not linter
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["tangelo"]

@@ -2,4 +2,9 @@ megatables/*
 .ipynb_checkpoints
 .vscode
 *.logscratch/*
+
+# uv — commit uv.lock for reproducibility, only ignore the venv
+.venv/
 scratch/*
+plots/*
+.github/*
