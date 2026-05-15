@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a PhD research pipeline for characterising galactic outflows in high-redshift Lyman-alpha emitters (LAEs) and connecting those outflow properties to physical galaxy characteristics. The project uses integral field spectroscopy data from the VLT/MUSE instrument, targeting LAEs strongly lensed (for magnification) by foreground galaxy clusters.
+This is a research pipeline for characterising galactic outflows in high-redshift Lyman-alpha emitters (LAEs) and connecting those outflow properties to physical galaxy characteristics. The project uses integral field spectroscopy data from the VLT/MUSE instrument, targeting LAEs strongly lensed (for magnification) by foreground galaxy clusters.
 
 The pipeline extracts spectra, fits spectral lines, applies radiative transfer models, and performs statistical analysis to understand the relationship between Lyman-alpha (Lyα) line morphology, ISM/CGM conditions (traced by metal emission and absorption lines), and inferred physical properties such as outflow velocity and HI column density.
 
@@ -88,6 +88,23 @@ The pipeline proceeds sequentially through numbered scripts/notebooks:
 
 ## Megatable Columns and Conventions
 
+### HST Continuum Magnitudes (from R21 catalogue, extracted from HST photometry with SExtractor)
+
+| Column | Description |
+|--------|-------------|
+| `MAG_ISO_HST_{FILTER}` | Isophotal magnitude in HST filter (e.g. F606W, F814W) |
+| `MAGERR_ISO_HST_{FILTER}` | Uncertainty on isophotal magnitude |
+| `MAG_AUTO_HST_{FILTER}` | Kron-like automatic aperture magnitude in HST filter |
+| `MAGERR_AUTO_HST_{FILTER}` | Uncertainty on automatic aperture magnitude |
+
+### Redshift and lensing magnification estimated from R21 catalogue
+
+| Column | Description |
+|--------|-------------|
+| `z` | Redshift from R21 catalogue (computed from fitting templates to entire spectra) |
+| `zconf` | Redshift confidence from R21 catalogue (1-3, with 3 = secure) |
+| `MU`, `MU_ERR` | Lensing magnification factor from R21 lens models |
+
 ### Lyα parameters (from Step 01 fitting)
 
 | Column | Description |
@@ -97,11 +114,13 @@ The pipeline proceeds sequentially through numbered scripts/notebooks:
 | `LPEAKR`, `LPEAKR_ERR` | Observed wavelength of red Lyα peak |
 | `LPEAKB`, `LPEAKB_ERR` | Observed wavelength of blue Lyα peak |
 | `FWHMR`, `FWHMR_ERR` | FWHM of red peak (observed frame, Å) |
+| `FWHMB`, `FWHMB_ERR` | FWHM of blue peak (observed frame, Å) |
 | `DISPR`, `DISPR_ERR` | Gaussian dispersion σ of red peak (Å) |
+| `DISPB`, `DISPB_ERR` | Gaussian dispersion σ of blue peak (Å) |
 | `ASYMR`, `ASYMR_ERR` | Asymmetry of red peak |
+| `ASYMB`, `ASYMB_ERR` | Asymmetry of blue peak |
 | `CONT`, `CONT_ERR` | UV continuum level |
 | `SNRR`, `SNRB` | Signal-to-noise of red/blue peaks |
-| `z` | Redshift from Lyα red peak |
 | `DELTAV_LYA` | Velocity offset of Lyα red peak from systemic (km/s) |
 
 ### Metal line parameters (per line, with `_{LINE}` suffix)
@@ -114,6 +133,28 @@ The pipeline proceeds sequentially through numbered scripts/notebooks:
 | `CONT_{LINE}`, `CONT_ERR_{LINE}` | Continuum at line position |
 | `SNR_{LINE}` | Line SNR (negative for absorption) |
 | `FLAG_{LINE}` | Quality flag (empty string = clean) |
+
+### Best-fit zELDA model parameters (with `_ZELDA` suffix)
+
+| Column | Description |
+|--------|-------------|
+| `VEXP_ZELDA`, `VEXP_ERRM_ZELDA`, `VEXP_ERRP_ZELDA` | Expansion velocity of HI shell (km/s) and asymmetric errors |
+| `LOGN_ZELDA`, `LOGN_ERRM_ZELDA`, `LOGN_ERRP_ZELDA` | Log₁₀ of HI column density (cm⁻²) and asymmetric errors |
+| `TAU_ZELDA`, `TAU_ERRM_ZELDA`, `TAU_ERRP_ZELDA` | Dust optical depth and asymmetric errors |
+| `WINT_ZELDA`, `WINT_ERRM_ZELDA`, `WINT_ERRP_ZELDA` | Intrinsic Lyα FWHM from zELDA fit (Å) and asymmetric errors |
+| `Z_ZELDA`, `Z_ERRM_ZELDA`, `Z_ERRP_ZELDA` | Systemic redshift from zELDA fit and asymmetric errors |
+| `LOGIEW_ZELDA`, `LOGIEW_ERRM_ZELDA`, `LOGIEW_ERRP_ZELDA` | Log₁₀ of intrinsic Lyα equivalent width from zELDA fit (Å) and asymmetric errors |
+| `RCHSQ_ZELDA` | Reduced chi-squared of the zELDA fit |
+
+### Stacked absorption line parameters (per source, with `{STACK}` = `LI` for low-ionisation lines, `HI` for high-ionisation lines, and `TOT` for all lines)
+
+| Column | Description |
+|--------|-------------|
+| `EW_{STACK}_ABS`, `EW_{STACK}_ABS_ERR` | Equivalent width of stacked absorption lines (Å) |
+| `DV_{STACK}_ABS`, `DV_{STACK}_ABS_ERR` | Velocity offset relative to Lyman-alpha peak (km/s) |
+| `W_{STACK}_ABS`, `W_{STACK}_ABS_ERR` | FWHM of stacked absorption lines (km/s) |
+| `DV_{STACK}_ABS_LINES` | String listing which lines were used to compute the stack (e.g. "SiII1260+CII1334") |
+
 
 ### Derived quantities
 
@@ -135,6 +176,7 @@ The pipeline proceeds sequentially through numbered scripts/notebooks:
 2. Do radiative transfer model parameters (VEXP_ZELDA, LOGN_ZELDA) correlate with directly-measured absorption line outflow velocities?
 3. What is the relationship between the UV continuum (proxy for star formation rate) and outflow signatures?
 4. Can Lyα profile morphology be used as a reliable proxy for outflow velocity or HI column density?
+5. Do expanding shell models provide physically meaningful estimates of outflow properties when compared with more direct measurements from absorption lines?
 
 ## Libraries and Dependencies
 
@@ -145,3 +187,7 @@ The pipeline proceeds sequentially through numbered scripts/notebooks:
 - **`zELDA` (`Lya_zelda`)** — Lyα radiative transfer RT model grids and MCMC fitting (Gurung-López et al. 2021)
 - **`sklearn`** — Factor Analysis, MICE imputation (IterativeImputer + BayesianRidge)
 - **`matplotlib`** — visualisation
+
+## Agent Editing Instructions
+
+When editing `.ipynb` notebook files, always use `replace_string_in_file` or `multi_replace_string_in_file` with the search string matching the raw JSON source of the notebook. Never manipulate notebook files via terminal scripts (e.g. Python `open()`/`write()` or `sed`). Editing via the file tools produces interactive diffs visible in VS Code; terminal-based rewrites bypass this and are invisible to the user until they manually revert.

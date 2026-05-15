@@ -1,10 +1,18 @@
 megatables/*
 .ipynb_checkpoints
 .vscode
-*.logscratch/*
+*.log
+scratch/*
+tex.cache/
 
 # uv — commit uv.lock for reproducibility, only ignore the venv
 .venv/
-scratch/*
+
+# environment variables — machine-specific paths, never commit
+.env
+
+# Plots (can be large, can be regenerated)
 plots/*
+
+# GitHub workflows (can be regenerated, not needed for local development)
 .github/*

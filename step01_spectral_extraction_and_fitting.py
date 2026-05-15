@@ -155,6 +155,8 @@ def insert_line_results(line_results, full_iden, line_name, fit_results, mu, mu_
     doublet = doublet_dict.get(line_name, (None, None))
     rest_wave_2 = wavedict.get(doublet[1])
 
+    doublet_fitted = 'FLUX2' in fit_results['param_dict']
+
     new_row_1 = {}
     new_row_2 = {} # For any secondary components (if not present, simply isn't added to the table)
     new_row_1['iden'] = full_iden
@@ -163,8 +165,8 @@ def insert_line_results(line_results, full_iden, line_name, fit_results, mu, mu_
     new_row_2['LINE'] = doublet[1]  # gets secondary line name if it's a doublet, else 'None'
     new_row_1['LBDA_REST'] = rest_wave
     new_row_2['LBDA_REST'] = rest_wave_2
-    new_row_1['FLAG'] = fit_results.get('multipeak_flag', '')
-    new_row_2['FLAG'] = fit_results.get('multipeak_flag', '')
+    new_row_1['FLAG'] = fit_results.get('flags', ['', ''])[0]
+    new_row_2['FLAG'] = fit_results.get('flags', ['', ''])[1] if doublet_fitted else ''
     new_row_1['RCHSQ'] = fit_results.get('reduced_chisq', np.nan)
     new_row_2['RCHSQ'] = fit_results.get('reduced_chisq', np.nan)
     new_row_1['SNR'] = fit_results['param_dict'].get('FLUX', np.nan) / fit_results['error_dict'].get('FLUX', np.nan)
@@ -274,8 +276,9 @@ def fit_spectrum(row, line_results, lya_results, CLUSTER_NAME, SPEC_SOURCE, SPEC
 
     # Fit the Lyman alpha line first
     plot_dir = tio.get_plot_dir(clus, full_iden)
+    fit_width_lya = 10 * (1 + z)  # Fit within +/- 10*(1+z) Angstroms of the expected Lyman alpha position
     lya_fit_results = lyafit.fit_lya_line(wave, spec, error, lya_p0, full_iden, clus,
-                                           plot_result=True, width=50,
+                                           plot_result=True, width=fit_width_lya,
                                            save_plots=True, plot_dir=plot_dir,
                                            spec_type=SPEC_TYPE) # default bounds will be used here
     
@@ -289,6 +292,7 @@ def fit_spectrum(row, line_results, lya_results, CLUSTER_NAME, SPEC_SOURCE, SPEC
 
     # Now fit any other lines from the R21 catalogues
     other_fit_results = {}
+    fit_width_lines = 5 * (1 + z)  # Fit within +/- 5*(1+z) Angstroms of the expected line position
 
     for i, line_row in enumerate(line_table):
         if line_row['LINE'] == 'LYALPHA':
@@ -322,7 +326,7 @@ def fit_spectrum(row, line_results, lya_results, CLUSTER_NAME, SPEC_SOURCE, SPEC
 
     
     # Check to see whether any important lines have not been fitted due to not appearing in the catalog
-    important_lines = ['CIV1548', 'SiII1260', 'OIII1660', 'SiIV1394', 'CIII1907', 'HeII1640']
+    important_lines = ['CIV1548', 'SiII1260', 'CII1334', 'OIII1660', 'SiIV1394', 'CIII1907', 'HeII1640']
     important_lines = set(important_lines) - set(other_fit_results.keys()) # Only check those not already fitted
 
     # Force fitting of important lines if they fall within the wavelength range of the spectrum
@@ -341,9 +345,10 @@ def fit_spectrum(row, line_results, lya_results, CLUSTER_NAME, SPEC_SOURCE, SPEC
             }
             if line in tconst.flines: # If it's a doublet, add a second component
                 manual_p0['FLUX2'] = manual_p0['FLUX']  # Assume secondary component is half the flux of primary
-            manual_fit = tfit.fit_line(wave, spec, error, line, manual_p0, plot_result=True,
-                                        save_plots=True, plot_dir=plot_dir, spec_type=SPEC_TYPE, cluster=clus, 
-                                        full_iden=full_iden)
+            manual_fit = tfit.fit_line(wave, spec, error, line, manual_p0, plot_result=True, 
+                                       continuum_buffer=fit_width_lines, save_plots=True, 
+                                       plot_dir=plot_dir, spec_type=SPEC_TYPE, cluster=clus,
+                                       full_iden=full_iden)
             if manual_fit:
                 insert_line_results(line_results, full_iden, line, manual_fit, mu, mu_err)
         
